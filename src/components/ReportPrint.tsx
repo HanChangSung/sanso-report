@@ -1,0 +1,123 @@
+'use client';
+
+import { type Direction8, type TerrainAnalysis } from '@/types/terrain';
+import { DIRECTIONS_8, KOR_DIR } from '@/lib/geo';
+
+type Coord = { lng: number; lat: number };
+
+interface Props {
+  analysis: TerrainAnalysis;
+  coord: Coord;
+  report: string | null;
+  siteName?: string;
+  customer?: string;
+}
+
+/** 인쇄(Save as PDF) 전용 상담 리포트 문서. 화면에서는 #report-print 규칙으로 숨김. */
+export default function ReportPrint({ analysis: a, coord, report, siteName, customer }: Props) {
+  const today = new Date().toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const cell = 'border border-gray-400 px-2 py-1 text-left align-top';
+  const head = 'border border-gray-400 bg-gray-100 px-2 py-1 text-left font-semibold whitespace-nowrap';
+
+  return (
+    <div id="report-print" className="mx-auto max-w-[180mm] p-8 text-[13px] leading-relaxed text-black">
+      {/* 제목 */}
+      <div className="mb-5 border-b-2 border-gray-800 pb-3">
+        <h1 className="text-2xl font-bold">산소 리포트 — 풍수 지형 분석 상담 자료</h1>
+        <p className="mt-1 text-xs text-gray-500">작성일: {today}</p>
+      </div>
+
+      {/* 묘역 정보 */}
+      <h2 className="mb-2 text-base font-bold">1. 묘역 정보</h2>
+      <table className="mb-5 w-full border-collapse">
+        <tbody>
+          <tr>
+            <th className={head}>묘역명</th>
+            <td className={cell}>{siteName?.trim() || '—'}</td>
+            <th className={head}>고객</th>
+            <td className={cell}>{customer?.trim() || '—'}</td>
+          </tr>
+          <tr>
+            <th className={head}>좌표</th>
+            <td className={cell}>
+              위도 {coord.lat.toFixed(6)} / 경도 {coord.lng.toFixed(6)}
+            </td>
+            <th className={head}>표고</th>
+            <td className={cell}>{a.centerElevation} m</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* 지형 분석 */}
+      <h2 className="mb-2 text-base font-bold">2. 지형 분석</h2>
+      <table className="mb-3 w-full border-collapse">
+        <tbody>
+          <tr>
+            <th className={head}>경사도</th>
+            <td className={cell}>
+              {a.slopeDeg}° ({a.labels[0]})
+            </td>
+            <th className={head}>좌향(방위)</th>
+            <td className={cell}>
+              {a.orientationLabel} (향 {a.aspectDeg}°)
+            </td>
+          </tr>
+          <tr>
+            <th className={head}>배산임수</th>
+            <td className={cell}>{a.baesanImsu ? '충족 (뒤가 높고 앞이 트임)' : '미흡'}</td>
+            <th className={head}>장풍 점수</th>
+            <td className={cell}>{a.jangpungScore} / 100</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* 방위별 상대고도 */}
+      <p className="mb-1 text-sm font-semibold">방위별 상대고도 (중심 대비, +면 주변이 더 높음)</p>
+      <table className="mb-5 w-full border-collapse text-center">
+        <thead>
+          <tr>
+            {DIRECTIONS_8.map((d) => (
+              <th key={d} className={head + ' text-center'}>
+                {KOR_DIR[d]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {DIRECTIONS_8.map((d: Direction8) => {
+              const v = a.relief[d];
+              return (
+                <td key={d} className={cell + ' text-center'}>
+                  {v == null ? '—' : `${v > 0 ? '+' : ''}${v}m`}
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
+
+      {/* 풍수 해석 */}
+      <h2 className="mb-2 text-base font-bold">3. 풍수 해석</h2>
+      {report ? (
+        <div className="mb-5 whitespace-pre-wrap rounded border border-gray-300 p-3">{report}</div>
+      ) : (
+        <p className="mb-5 rounded border border-dashed border-gray-300 p-3 text-gray-500">
+          풍수 해석문이 아직 생성되지 않았습니다. (Claude 크레딧 충전 후 “풍수 리포트 생성”으로 작성)
+        </p>
+      )}
+
+      {/* 출처 */}
+      <div className="mt-8 border-t border-gray-300 pt-3 text-xs text-gray-500">
+        <p>지도: VWorld · 표고: OpenTopoData SRTM 30m · 해석: 전통 풍수지리 + Claude</p>
+        <p className="mt-0.5">본 자료는 전통 풍수 이론과 현대 지형데이터를 결합한 참고용 상담 자료입니다.</p>
+        <p className="mt-1 font-semibold text-gray-700">산소 리포트</p>
+      </div>
+    </div>
+  );
+}
