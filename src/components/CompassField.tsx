@@ -39,6 +39,7 @@ export default function CompassField({
   const [busy, setBusy] = useState<'top' | 'bottom' | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [newName, setNewName] = useState(''); // 새 묘역 이름 (묘역 미지정 시)
 
   const corrected = heading == null ? null : ((heading + offset) % 360 + 360) % 360;
 
@@ -163,7 +164,7 @@ export default function CompassField({
     return { r, reading };
   }, [top, bottom]);
 
-  // --- 저장 ---
+  // --- 기존 묘역에 저장 (PATCH) ---
   const save = useCallback(async () => {
     if (!siteId || !top || !bottom) return;
     setSaveState('saving');
@@ -186,6 +187,39 @@ export default function CompassField({
       setSaveError((e as Error).message);
     }
   }, [siteId, top, bottom]);
+
+  // --- 새 묘역으로 저장 (POST) — 좌표는 두 측정점의 중점 ---
+  const saveNew = useCallback(async () => {
+    if (!top || !bottom) return;
+    if (!newName.trim()) {
+      setSaveError('묘역 이름을 입력하세요.');
+      return;
+    }
+    setSaveState('saving');
+    setSaveError(null);
+    try {
+      const lng = (top.lng + bottom.lng) / 2;
+      const lat = (top.lat + bottom.lat) / 2;
+      const res = await fetch('/api/sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newName.trim(),
+          lng,
+          lat,
+          measurement: { top, bottom, measuredAt: new Date().toISOString() },
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? `저장 실패 (${res.status})`);
+      }
+      setSaveState('saved');
+    } catch (e) {
+      setSaveState('error');
+      setSaveError((e as Error).message);
+    }
+  }, [top, bottom, newName]);
 
   const ribbon =
     corrected == null
@@ -222,7 +256,8 @@ export default function CompassField({
           </p>
           {!siteId && (
             <p className="rounded bg-amber-500/20 px-3 py-1.5 text-xs text-amber-200">
-              묘역을 선택해 열면 측정값이 자동 저장됩니다. (대시보드 목록의 “현장측정”)
+              측정 후 <b>새 묘역으로 바로 저장</b>할 수 있습니다. 기존 묘역에 저장하려면 대시보드
+              목록의 “현장측정”으로 여세요.
             </p>
           )}
           {error && <p className="text-sm text-rose-400">{error}</p>}
@@ -346,7 +381,7 @@ export default function CompassField({
               </div>
             )}
 
-            {/* 저장 */}
+            {/* 저장 — 기존 묘역(PATCH) */}
             {summary?.reading && siteId && (
               <button
                 onClick={save}
@@ -359,6 +394,30 @@ export default function CompassField({
                     ? '✓ 저장됨 — 대시보드 리포트에 반영됨'
                     : '이 묘역에 측정값 저장'}
               </button>
+            )}
+
+            {/* 저장 — 새 묘역(POST) */}
+            {summary?.reading && !siteId && saveState !== 'saved' && (
+              <div className="flex gap-2">
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="새 묘역 이름 (예: 강씨 선영)"
+                  className="min-w-0 flex-1 rounded-lg bg-white/90 px-3 py-2.5 text-sm text-black placeholder:text-gray-400 outline-none"
+                />
+                <button
+                  onClick={saveNew}
+                  disabled={saveState === 'saving' || !newName.trim()}
+                  className="shrink-0 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-bold text-black hover:bg-amber-400 disabled:opacity-60"
+                >
+                  {saveState === 'saving' ? '저장 중…' : '새 묘역 저장'}
+                </button>
+              </div>
+            )}
+            {summary?.reading && !siteId && saveState === 'saved' && (
+              <p className="rounded-lg bg-emerald-500/25 py-2.5 text-center text-sm font-semibold text-emerald-200">
+                ✓ 새 묘역으로 저장됨 — 대시보드 목록에 추가됨
+              </p>
             )}
             {saveState === 'saved' && (
               <Link href="/" className="block w-full rounded-lg bg-white/15 py-2 text-center text-sm">

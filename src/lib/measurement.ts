@@ -8,9 +8,36 @@
  */
 
 import { bearingBetween, distanceM } from './geo';
-import { type GraveMeasurement } from '@/types/site';
+import { type GraveMeasurement, type PointReading } from '@/types/site';
 
 const norm360 = (d: number): number => ((d % 360) + 360) % 360;
+
+/** 신뢰할 수 없는 입력을 PointReading 으로 정규화 (서버 검증용) */
+export function normalizePoint(v: unknown): PointReading | null {
+  const p = (v ?? {}) as Record<string, unknown>;
+  if (typeof p.lng !== 'number' || typeof p.lat !== 'number') return null;
+  return {
+    lng: p.lng,
+    lat: p.lat,
+    elevation: typeof p.elevation === 'number' ? p.elevation : null,
+    heading: typeof p.heading === 'number' ? p.heading : null,
+    accuracy: typeof p.accuracy === 'number' ? p.accuracy : null,
+  };
+}
+
+/** 신뢰할 수 없는 입력을 GraveMeasurement 으로 정규화. 형식 오류면 null */
+export function normalizeMeasurement(v: unknown): GraveMeasurement | null {
+  if (!v || typeof v !== 'object') return null;
+  const m = v as Record<string, unknown>;
+  const top = normalizePoint(m.top);
+  const bottom = normalizePoint(m.bottom);
+  if (!top || !bottom) return null;
+  return {
+    top,
+    bottom,
+    measuredAt: typeof m.measuredAt === 'string' ? m.measuredAt : new Date().toISOString(),
+  };
+}
 
 /** 방위각 원형평균(도) */
 export function circularMeanDeg(degs: number[]): number | null {

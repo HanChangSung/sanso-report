@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { readSites, writeSites } from '@/lib/sitesStore';
+import { normalizeMeasurement } from '@/lib/measurement';
 import { type Site } from '@/types/site';
 
 // GET /api/sites — 저장된 묘역 전체 목록
@@ -17,11 +18,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '잘못된 요청 본문입니다.' }, { status: 400 });
   }
 
-  const { name, customer, memo, lng, lat } = (body ?? {}) as Record<string, unknown>;
+  const { name, customer, memo, lng, lat, measurement } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof lng !== 'number' || typeof lat !== 'number' || Number.isNaN(lng) || Number.isNaN(lat)) {
     return NextResponse.json({ error: '좌표(lng/lat)가 필요합니다.' }, { status: 400 });
   }
+
+  const normMeasurement = measurement !== undefined ? normalizeMeasurement(measurement) : null;
 
   const sites = await readSites();
   const site: Site = {
@@ -32,6 +35,7 @@ export async function POST(req: NextRequest) {
     lng,
     lat,
     createdAt: new Date().toISOString(),
+    ...(normMeasurement ? { measurement: normMeasurement } : {}),
   };
 
   // 최신 항목이 위로 오도록 앞에 추가
