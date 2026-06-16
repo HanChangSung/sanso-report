@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { type Direction8, type TerrainAnalysis } from '@/types/terrain';
 import ReportPrint from './ReportPrint';
 
@@ -36,6 +36,14 @@ export default function TerrainPanel({
   const [report, setReport] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  // 리포트가 생성/실패하면 화면 밖으로 밀리지 않도록 해당 위치로 스크롤
+  useEffect(() => {
+    if (report || reportError) {
+      reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [report, reportError]);
 
   const handleGenerateReport = async () => {
     if (!data) return;
@@ -210,10 +218,15 @@ export default function TerrainPanel({
               {reportLoading ? '풍수 해석문 작성 중…' : '풍수 리포트 생성'}
             </button>
             {reportError && (
-              <p className="mt-2 text-xs text-red-500">{reportError}</p>
+              <p ref={reportRef} className="mt-2 text-xs text-red-500">
+                {reportError}
+              </p>
             )}
             {report && (
-              <div className="mt-2 whitespace-pre-wrap rounded-md bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-gray-800">
+              <div
+                ref={reportRef}
+                className="mt-2 whitespace-pre-wrap rounded-md bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-gray-800"
+              >
                 {report}
               </div>
             )}

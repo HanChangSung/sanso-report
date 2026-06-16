@@ -83,7 +83,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-[100dvh] w-full flex-col-reverse overflow-hidden md:flex-row">
       {/* 사이드바 (모바일: 지도 아래, 데스크톱: 좌측) */}
-      <aside className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto border-t border-gray-200 bg-white md:w-96 md:flex-none md:overflow-hidden md:border-t-0 md:border-r">
+      <aside className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto border-t border-gray-200 bg-white md:w-96 md:flex-none md:border-t-0 md:border-r">
         <header className="border-b border-gray-200 px-5 py-4">
           <h1 className="text-lg font-bold text-gray-900">산소 리포트</h1>
           <p className="text-xs text-gray-500">디지털 묘지 명당 분석 · 상담 대시보드</p>
@@ -142,11 +142,11 @@ export default function Dashboard() {
         <TerrainPanel coord={pending} siteName={name} customer={customer} />
 
         {/* 저장된 묘역 목록 */}
-        <section className="flex flex-col md:min-h-0 md:flex-1">
+        <section className="flex flex-col">
           <h2 className="px-5 pt-4 pb-2 text-sm font-semibold text-gray-700">
             저장된 묘역 <span className="text-gray-400">({sites.length})</span>
           </h2>
-          <ul className="overflow-y-auto px-3 pb-4 md:flex-1">
+          <ul className="px-3 pb-4">
             {sites.length === 0 && (
               <li className="px-2 py-6 text-center text-xs text-gray-400">
                 저장된 묘역이 없습니다.
