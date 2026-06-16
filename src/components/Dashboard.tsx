@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import VworldMap from './VworldMap';
 import TerrainPanel from './TerrainPanel';
 import LocationInput from './LocationInput';
@@ -84,9 +85,17 @@ export default function Dashboard() {
     <div className="flex h-[100dvh] w-full flex-col-reverse overflow-hidden md:flex-row">
       {/* 사이드바 (모바일: 지도 아래, 데스크톱: 좌측) */}
       <aside className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto border-t border-gray-200 bg-white md:h-[100dvh] md:w-96 md:flex-none md:border-t-0 md:border-r">
-        <header className="border-b border-gray-200 px-5 py-4">
-          <h1 className="text-lg font-bold text-gray-900">산소 리포트</h1>
-          <p className="text-xs text-gray-500">디지털 묘지 명당 분석 · 상담 대시보드</p>
+        <header className="flex items-start justify-between gap-2 border-b border-gray-200 px-5 py-4">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">산소 리포트</h1>
+            <p className="text-xs text-gray-500">디지털 묘지 명당 분석 · 상담 대시보드</p>
+          </div>
+          <Link
+            href="/compass"
+            className="shrink-0 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            현장 패철 (AR)
+          </Link>
         </header>
 
         {/* 좌표 저장 폼 */}
