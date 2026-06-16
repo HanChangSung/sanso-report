@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '잘못된 요청 본문입니다.' }, { status: 400 });
   }
 
-  const { lng, lat, radiusM } = (body ?? {}) as Record<string, unknown>;
+  const { lng, lat, radiusM, hyangDeg, paguDeg, axisSlopeDeg, baesanImsu } = (body ??
+    {}) as Record<string, unknown>;
   if (
     typeof lng !== 'number' ||
     typeof lat !== 'number' ||
@@ -34,6 +35,17 @@ export async function POST(req: NextRequest) {
   }
   const radius =
     typeof radiusM === 'number' && radiusM > 0 ? radiusM : DEFAULT_RADIUS_M;
+
+  // 현장 2점 실측 오버라이드 (선택)
+  const override =
+    typeof hyangDeg === 'number'
+      ? {
+          hyangDeg,
+          paguDeg: typeof paguDeg === 'number' ? paguDeg : undefined,
+          axisSlopeDeg: typeof axisSlopeDeg === 'number' ? axisSlopeDeg : undefined,
+          baesanImsu: typeof baesanImsu === 'boolean' ? baesanImsu : undefined,
+        }
+      : undefined;
 
   const center = { lng, lat };
   const ring = ringPoints(center, radius);
@@ -56,7 +68,7 @@ export async function POST(req: NextRequest) {
   });
 
   const samples: TerrainSamples = { center: centerEl, ring: ringEl, radiusM: radius };
-  const analysis = analyzeTerrain(samples);
+  const analysis = analyzeTerrain(samples, override);
 
   return NextResponse.json(analysis);
 }

@@ -59,3 +59,19 @@ export function bearingTo8(deg: number): Direction8 {
   const idx = Math.round(norm / 45) % 8;
   return DIRECTIONS_8[idx];
 }
+
+/** 두 좌표 사이 거리(m) — 근거리 등거방형 근사 */
+export function distanceM(a: LngLat, b: LngLat): number {
+  const latR = ((a.lat + b.lat) / 2) * (Math.PI / 180);
+  const dN = (b.lat - a.lat) * (Math.PI / 180) * EARTH_R;
+  const dE = (b.lng - a.lng) * (Math.PI / 180) * EARTH_R * Math.cos(latR);
+  return Math.hypot(dN, dE);
+}
+
+/** a→b 초기 방위각 (도, 북=0 시계방향) */
+export function bearingBetween(a: LngLat, b: LngLat): number {
+  const latR = ((a.lat + b.lat) / 2) * (Math.PI / 180);
+  const dN = (b.lat - a.lat) * (Math.PI / 180) * EARTH_R;
+  const dE = (b.lng - a.lng) * (Math.PI / 180) * EARTH_R * Math.cos(latR);
+  return (((Math.atan2(dE, dN) * 180) / Math.PI) % 360 + 360) % 360;
+}

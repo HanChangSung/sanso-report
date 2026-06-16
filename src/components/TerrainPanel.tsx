@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { type Direction8, type TerrainAnalysis } from '@/types/terrain';
+import { type GraveMeasurement } from '@/types/site';
 import { compassReading, MOUNTAINS_24 } from '@/lib/luopan';
+import { resolveMeasurement } from '@/lib/measurement';
 import ReportPrint from './ReportPrint';
 
 type Coord = { lng: number; lat: number };
@@ -24,10 +26,12 @@ export default function TerrainPanel({
   coord,
   siteName,
   customer,
+  measurement,
 }: {
   coord: Coord | null;
   siteName?: string;
   customer?: string;
+  measurement?: GraveMeasurement;
 }) {
   const [data, setData] = useState<TerrainAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,10 +66,18 @@ export default function TerrainPanel({
     setReportError(null);
     setReport(null);
     try {
+      const rm = measurement ? resolveMeasurement(measurement) : null;
+      const measurementNote =
+        rm?.hyangDeg != null
+          ? `현장 2점(묘 상단·하단) 패철 실측 반영. 측정 향 ${rm.hyangDeg}°` +
+            (rm.baselineDistM != null ? `, 축길이 ${rm.baselineDistM}m` : '') +
+            (rm.elevDiff != null ? `, 상단-하단 표고차 ${rm.elevDiff}m` : '') +
+            '.'
+          : undefined;
       const res = await fetch('/api/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysis: data }),
+        body: JSON.stringify({ analysis: data, name: siteName, customer, measurementNote }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `생성 실패 (${res.status})`);
@@ -89,10 +101,20 @@ export default function TerrainPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
+
+    // 현장 2점 실측이 있으면 향·경사·배산임수를 실측값으로 덮어쓰도록 전달
+    const rm = measurement ? resolveMeasurement(measurement) : null;
+    const body: Record<string, number | boolean> = { lng: coord.lng, lat: coord.lat };
+    if (rm?.hyangDeg != null) {
+      body.hyangDeg = rm.hyangDeg;
+      if (rm.axisSlopeDeg != null) body.axisSlopeDeg = rm.axisSlopeDeg;
+      if (rm.baesanImsu != null) body.baesanImsu = rm.baesanImsu;
+    }
+
     fetch('/api/terrain', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lng: coord.lng, lat: coord.lat }),
+      body: JSON.stringify(body),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -113,13 +135,20 @@ export default function TerrainPanel({
     return () => {
       cancelled = true;
     };
-  }, [coord]);
+  }, [coord, measurement]);
 
   if (!coord) return null;
 
   return (
     <section className="border-b border-gray-200 px-5 py-4">
-      <h2 className="mb-2 text-sm font-semibold text-gray-700">지형 분석</h2>
+      <div className="mb-2 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-gray-700">지형 분석</h2>
+        {data?.labels.includes('현장 2점 실측 반영') && (
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+            현장 2점 실측 반영
+          </span>
+        )}
+      </div>
 
       {loading && <p className="text-xs text-gray-400">표고 데이터를 분석 중…</p>}
       {error && <p className="text-xs text-red-500">{error}</p>}
@@ -324,6 +353,7 @@ export default function TerrainPanel({
           report={report}
           siteName={siteName}
           customer={customer}
+          measurement={measurement}
         />
       )}
     </section>

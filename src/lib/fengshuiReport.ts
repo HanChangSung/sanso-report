@@ -9,6 +9,8 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
 export interface SiteContext {
   name?: string;
   customer?: string;
+  /** 현장 2점 실측 반영 시 안내 문구 */
+  measurementNote?: string;
 }
 
 /** 방위별 상대고도를 사람이 읽는 한 줄로 */
@@ -44,6 +46,7 @@ function buildAnalysisBrief(a: TerrainAnalysis, site?: SiteContext): string {
     `사국(四局): ${c.saguk}(${c.sagukHanja}), 묘고 ${c.myo}`,
     `12포태 — 향: ${c.hyangPotae} / 파구: ${c.paguPotae} (향 포태 기준 보수적 길흉: ${c.hyangFortune})`,
     `유의: ${c.note}`,
+    site?.measurementNote ? `\n[현장 실측] ${site.measurementNote} → 위 좌향·경사·배산임수는 DEM 추정이 아니라 현장 실측 기반이므로 신뢰도가 높습니다. 해석에 이 점을 반영하세요.` : null,
   ].filter((l) => l !== null);
   return lines.join('\n');
 }

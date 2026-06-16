@@ -21,10 +21,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '잘못된 요청 본문입니다.' }, { status: 400 });
   }
 
-  const { analysis, name, customer } = (body ?? {}) as {
+  const { analysis, name, customer, measurementNote } = (body ?? {}) as {
     analysis?: TerrainAnalysis;
     name?: string;
     customer?: string;
+    measurementNote?: string;
   };
 
   if (!analysis || typeof analysis.slopeDeg !== 'number') {
@@ -35,7 +36,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const report = await generateFengshuiReport(analysis, { name, customer });
+    const report = await generateFengshuiReport(analysis, {
+      name,
+      customer,
+      measurementNote: typeof measurementNote === 'string' ? measurementNote : undefined,
+    });
     return NextResponse.json({ report });
   } catch (e) {
     const err = e as { status?: number; message?: string };

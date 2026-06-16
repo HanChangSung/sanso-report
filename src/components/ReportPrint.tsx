@@ -1,7 +1,9 @@
 'use client';
 
 import { type Direction8, type TerrainAnalysis } from '@/types/terrain';
+import { type GraveMeasurement } from '@/types/site';
 import { DIRECTIONS_8, KOR_DIR } from '@/lib/geo';
+import { resolveMeasurement } from '@/lib/measurement';
 
 type Coord = { lng: number; lat: number };
 
@@ -11,10 +13,12 @@ interface Props {
   report: string | null;
   siteName?: string;
   customer?: string;
+  measurement?: GraveMeasurement;
 }
 
 /** 인쇄(Save as PDF) 전용 상담 리포트 문서. 화면에서는 #report-print 규칙으로 숨김. */
-export default function ReportPrint({ analysis: a, coord, report, siteName, customer }: Props) {
+export default function ReportPrint({ analysis: a, coord, report, siteName, customer, measurement }: Props) {
+  const rm = measurement ? resolveMeasurement(measurement) : null;
   const today = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
@@ -129,7 +133,45 @@ export default function ReportPrint({ analysis: a, coord, report, siteName, cust
           </tr>
         </tbody>
       </table>
-      <p className="mb-5 text-[11px] text-gray-500">※ {a.compass.note}</p>
+      <p className="mb-3 text-[11px] text-gray-500">※ {a.compass.note}</p>
+
+      {/* 현장 2점 실측 */}
+      {measurement && rm && (
+        <>
+          <p className="mb-1 text-sm font-semibold">현장 2점 패철 실측</p>
+          <table className="mb-5 w-full border-collapse">
+            <tbody>
+              <tr>
+                <th className={head}>상단부(뒤)</th>
+                <td className={cell}>
+                  {measurement.top.lat.toFixed(6)}, {measurement.top.lng.toFixed(6)}
+                  {measurement.top.elevation != null && ` · ${measurement.top.elevation}m`}
+                  {measurement.top.heading != null && ` · 향 ${Math.round(measurement.top.heading)}°`}
+                </td>
+                <th className={head}>하단부(앞)</th>
+                <td className={cell}>
+                  {measurement.bottom.lat.toFixed(6)}, {measurement.bottom.lng.toFixed(6)}
+                  {measurement.bottom.elevation != null && ` · ${measurement.bottom.elevation}m`}
+                  {measurement.bottom.heading != null &&
+                    ` · 향 ${Math.round(measurement.bottom.heading)}°`}
+                </td>
+              </tr>
+              <tr>
+                <th className={head}>측정 향</th>
+                <td className={cell}>
+                  {rm.hyangDeg != null ? `${rm.hyangDeg}°` : '—'}{' '}
+                  ({rm.source === 'compass' ? '패철 헤딩' : rm.source === 'gps' ? 'GPS 방위' : '—'})
+                </td>
+                <th className={head}>축길이 / 표고차</th>
+                <td className={cell}>
+                  {rm.baselineDistM != null ? `${rm.baselineDistM}m` : '—'} /{' '}
+                  {rm.elevDiff != null ? `상단 ${rm.elevDiff > 0 ? '+' : ''}${rm.elevDiff}m` : '—'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </>
+      )}
 
       {/* 풍수 해석 */}
       <h2 className="mb-2 text-base font-bold">3. 풍수 해석</h2>

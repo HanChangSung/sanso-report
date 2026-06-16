@@ -6,6 +6,18 @@ import {
 import { DIRECTIONS_8, KOR_DIR, bearingTo8 } from './geo';
 import { compassReading } from './luopan';
 
+/** 현장 2점 실측으로 DEM 산출값을 덮어쓰는 옵션 */
+export interface MeasuredOverride {
+  /** 실측 향 방위각 (0~360) */
+  hyangDeg?: number;
+  /** 실측/지정 파구 방위각 */
+  paguDeg?: number;
+  /** 실측 축 경사(도) */
+  axisSlopeDeg?: number | null;
+  /** 실측 배산임수(상단이 하단보다 높음) */
+  baesanImsu?: boolean | null;
+}
+
 /** 각 방위의 반대 방위 */
 const OPPOSITE: Record<Direction8, Direction8> = {
   N: 'S',
@@ -37,7 +49,10 @@ function neighbor(d: Direction8, off: number): Direction8 {
  * 표고 샘플(중심 + 8방위)로부터 경사·사면방위·장풍(배산임수)을 계산한다.
  * GPT 없이 순수 숫자만 산출. ring 의 표고가 비면 중심 표고로 대체해 계산한다.
  */
-export function analyzeTerrain(samples: TerrainSamples): TerrainAnalysis {
+export function analyzeTerrain(
+  samples: TerrainSamples,
+  override?: MeasuredOverride,
+): TerrainAnalysis {
   const { center, ring, radiusM } = samples;
   const c = center.elevation ?? 0;
 
@@ -84,19 +99,28 @@ export function analyzeTerrain(samples: TerrainSamples): TerrainAnalysis {
   // 배산임수: 뒤가 높고 앞이 낮으며, 의미 있는 경사가 있을 때 충족
   const baesanImsu = backRise > 0 && frontDrop > 0 && slopeDeg >= 1.5;
 
-  // --- 1차 룰 판정 라벨 ---
+  // --- 현장 2점 실측 반영 (있으면 DEM 산출값을 덮어씀) ---
+  const measured = override?.hyangDeg != null;
+  const finalAspectDeg = measured ? round(override!.hyangDeg!, 1) : aspectDeg;
+  const finalAspect8 = bearingTo8(finalAspectDeg);
+  const finalBack8 = OPPOSITE[finalAspect8];
+  const finalSlope = override?.axisSlopeDeg != null ? round(override.axisSlopeDeg, 2) : slopeDeg;
+  const finalBaesan = override?.baesanImsu != null ? override.baesanImsu : baesanImsu;
+  const paguDeg = override?.paguDeg;
+
+  // --- 1차 룰 판정 라벨 (labels[0] = 경사 카테고리, 다른 모듈이 참조) ---
   const labels: string[] = [];
   labels.push(
-    slopeDeg < 3
+    finalSlope < 3
       ? '평탄지'
-      : slopeDeg < 10
+      : finalSlope < 10
         ? '완경사'
-        : slopeDeg < 20
+        : finalSlope < 20
           ? '중경사'
           : '급경사',
   );
-  labels.push(`향 ${KOR_DIR[aspect8]} · 배산 ${KOR_DIR[back8]}`);
-  labels.push(baesanImsu ? '배산임수 충족' : '배산임수 미흡');
+  labels.push(`향 ${KOR_DIR[finalAspect8]} · 배산 ${KOR_DIR[finalBack8]}`);
+  labels.push(finalBaesan ? '배산임수 충족' : '배산임수 미흡');
   labels.push(
     jangpungScore >= 70
       ? '장풍 우수 (명당형)'
@@ -104,19 +128,23 @@ export function analyzeTerrain(samples: TerrainSamples): TerrainAnalysis {
         ? '장풍 보통'
         : '장풍 부족 (트인 지형)',
   );
+  if (measured) labels.push('현장 2점 실측 반영');
 
   return {
     centerElevation: round(c),
-    slopeDeg,
-    aspectDeg,
-    aspect8,
-    back8,
-    baesanImsu,
+    slopeDeg: finalSlope,
+    aspectDeg: finalAspectDeg,
+    aspect8: finalAspect8,
+    back8: finalBack8,
+    baesanImsu: finalBaesan,
     jangpungScore,
     relief,
-    orientationLabel: `배산 ${KOR_DIR[back8]} · 향 ${KOR_DIR[aspect8]}`,
-    // 파구는 기본적으로 내리막(향) 방향으로 추정. 현장 실측 시 사용자가 수정.
-    compass: compassReading(aspectDeg, aspectDeg, 'estimated'),
+    orientationLabel: `배산 ${KOR_DIR[finalBack8]} · 향 ${KOR_DIR[finalAspect8]}`,
+    // 파구: 실측/지정값 우선, 없으면 향 방향으로 추정.
+    compass:
+      paguDeg != null
+        ? compassReading(finalAspectDeg, paguDeg, 'manual')
+        : compassReading(finalAspectDeg, finalAspectDeg, 'estimated'),
     labels,
     samples,
   };

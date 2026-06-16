@@ -29,9 +29,10 @@ export default function Dashboard() {
     loadSites();
   }, [loadSites]);
 
-  // 지도 클릭 → 임시 좌표 선택
+  // 지도 클릭 → 임시 좌표 선택 (새 핀이므로 선택 해제)
   const handlePick = useCallback((lng: number, lat: number) => {
     setPending({ lng, lat });
+    setSelectedId(null);
   }, []);
 
   // 주소검색/좌표입력/사진 → 임시 좌표 선택 + 지도 이동
@@ -65,10 +66,11 @@ export default function Dashboard() {
     }
   };
 
-  // 목록에서 위치 보기
+  // 목록에서 위치 보기 → 지도 이동 + 해당 좌표 지형분석(측정값 있으면 반영)
   const handleView = (site: Site) => {
     setSelectedId(site.id);
     setFlyTo({ lng: site.lng, lat: site.lat });
+    setPending({ lng: site.lng, lat: site.lat });
   };
 
   // 삭제
@@ -80,6 +82,8 @@ export default function Dashboard() {
       if (selectedId === id) setSelectedId(null);
     }
   };
+
+  const selectedSite = sites.find((s) => s.id === selectedId) ?? null;
 
   return (
     <div className="flex h-[100dvh] w-full flex-col-reverse overflow-hidden md:flex-row">
@@ -147,8 +151,13 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* 지형 분석 (클릭 좌표 기준) */}
-        <TerrainPanel coord={pending} siteName={name} customer={customer} />
+        {/* 지형 분석 (클릭 좌표 기준, 측정값 있으면 실측 반영) */}
+        <TerrainPanel
+          coord={pending}
+          siteName={name || selectedSite?.name}
+          customer={customer || selectedSite?.customer}
+          measurement={selectedSite?.measurement}
+        />
 
         {/* 저장된 묘역 목록 */}
         <section className="flex flex-col">
@@ -172,7 +181,14 @@ export default function Dashboard() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900">{s.name}</p>
+                    <p className="truncate text-sm font-medium text-gray-900">
+                      {s.name}
+                      {s.measurement && (
+                        <span className="ml-1.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          측정됨
+                        </span>
+                      )}
+                    </p>
                     {s.customer && (
                       <p className="truncate text-xs text-gray-500">고객: {s.customer}</p>
                     )}
@@ -182,13 +198,19 @@ export default function Dashboard() {
                     {s.memo && <p className="mt-1 line-clamp-2 text-xs text-gray-600">{s.memo}</p>}
                   </div>
                 </div>
-                <div className="mt-2 flex gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   <button
                     onClick={() => handleView(s)}
                     className="rounded bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700"
                   >
                     보기
                   </button>
+                  <Link
+                    href={`/compass?siteId=${s.id}&name=${encodeURIComponent(s.name)}`}
+                    className="rounded bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+                  >
+                    현장측정
+                  </Link>
                   <button
                     onClick={() => handleDelete(s.id)}
                     className="rounded border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
