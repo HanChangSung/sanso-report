@@ -173,6 +173,39 @@ export default function ReportPrint({ analysis: a, coord, report, siteName, cust
         </>
       )}
 
+      {/* 비보(裨補) 석물 배치 */}
+      <p className="mb-1 text-sm font-semibold">비보(裨補) 석물 배치 가이드</p>
+      <p className="mb-1 text-[12px] text-gray-700">{a.bibo.summary}</p>
+      {a.bibo.items.length > 0 && (
+        <table className="mb-5 w-full border-collapse">
+          <thead>
+            <tr>
+              <th className={head + ' text-center'}>방위</th>
+              <th className={head}>위치</th>
+              <th className={head}>설치물</th>
+              <th className={head}>효과</th>
+            </tr>
+          </thead>
+          <tbody>
+            {a.bibo.items.map((b) => (
+              <tr key={b.dir}>
+                <td className={cell + ' whitespace-nowrap text-center'}>
+                  {b.dirKor} {b.bearingDeg}°<br />
+                  <span className="text-[11px] text-gray-500">
+                    {b.role} · {b.relief}m
+                  </span>
+                </td>
+                <td className={cell}>
+                  {b.distance} {b.dirKor}쪽
+                </td>
+                <td className={cell}>{b.remedy}</td>
+                <td className={cell}>{b.effect}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       {/* 풍수 해석 */}
       <h2 className="mb-2 text-base font-bold">3. 풍수 해석</h2>
       {report ? (

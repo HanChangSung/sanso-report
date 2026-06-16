@@ -307,6 +307,37 @@ export default function TerrainPanel({
             </p>
           </div>
 
+          {/* 비보(裨補) 석물 배치 */}
+          <div className="rounded-md border border-gray-200 bg-amber-50/50 px-3 py-2.5">
+            <h3 className="mb-1 text-xs font-semibold text-gray-700">비보(裨補) 석물 배치</h3>
+            <p className="mb-2 text-[11px] leading-relaxed text-gray-600">{data.bibo.summary}</p>
+            {data.bibo.items.length > 0 && (
+              <ul className="space-y-1.5">
+                {data.bibo.items.map((b) => (
+                  <li key={b.dir} className="rounded bg-white px-2 py-1.5 text-[11px]">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-gray-800">
+                        {b.dirKor}({b.bearingDeg}°) · {b.role}
+                      </span>
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                          b.severity === '높음'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {b.relief}m · {b.severity}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-gray-600">
+                      {b.distance} {b.dirKor}쪽 — {b.remedy}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {/* 풍수 리포트 생성 (Claude) */}
           <div className="border-t border-gray-100 pt-3">
             <button

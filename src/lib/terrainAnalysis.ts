@@ -5,6 +5,7 @@ import {
 } from '@/types/terrain';
 import { DIRECTIONS_8, KOR_DIR, bearingTo8 } from './geo';
 import { compassReading } from './luopan';
+import { computeBibo } from './bibo';
 
 /** 현장 2점 실측으로 DEM 산출값을 덮어쓰는 옵션 */
 export interface MeasuredOverride {
@@ -145,6 +146,7 @@ export function analyzeTerrain(
       paguDeg != null
         ? compassReading(finalAspectDeg, paguDeg, 'manual')
         : compassReading(finalAspectDeg, finalAspectDeg, 'estimated'),
+    bibo: computeBibo({ relief, aspectDeg: finalAspectDeg }),
     labels,
     samples,
   };

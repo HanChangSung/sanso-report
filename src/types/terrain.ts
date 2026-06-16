@@ -74,6 +74,35 @@ export interface CompassReading {
   note: string;
 }
 
+/** 비보(裨補) 석물 배치 1건 */
+export interface BiboItem {
+  /** 보완 대상 방위 (8방위) */
+  dir: Direction8;
+  /** 방위 한글 */
+  dirKor: string;
+  /** 방위각 (도) */
+  bearingDeg: number;
+  /** 중심 대비 상대고도 (음수=낮음/허함) */
+  relief: number;
+  /** 사신사 역할 */
+  role: '현무(뒤)' | '청룡(좌)' | '백호(우)' | '주작(앞)';
+  /** 보완 시급도 */
+  severity: '높음' | '보통';
+  /** 권장 석물/조치 */
+  remedy: string;
+  /** 묘 중심 기준 권장 거리 */
+  distance: string;
+  /** 기대 효과 */
+  effect: string;
+}
+
+/** 비보 종합 계획 */
+export interface BiboPlan {
+  items: BiboItem[];
+  /** 종합 코멘트 (없으면 비보 불필요 안내) */
+  summary: string;
+}
+
 /** 지형 계산 결과 (순수 숫자 + 1차 룰 판정 라벨) */
 export interface TerrainAnalysis {
   /** 중심 표고 (m) */
@@ -96,6 +125,8 @@ export interface TerrainAnalysis {
   orientationLabel: string;
   /** 패철 24방위 좌향 + 12포태(88향법) 판정. 파구 기본은 지형추정, 사용자 수정 가능 */
   compass: CompassReading;
+  /** 비보(裨補) — 허한 방위 보완 석물 배치 가이드 */
+  bibo: BiboPlan;
   /** 사람이 읽을 1차 룰 판정 라벨 (GPT 입력 전 요약) */
   labels: string[];
   /** 사용된 표고 샘플 원본 */
