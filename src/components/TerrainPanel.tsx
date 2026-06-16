@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { type Direction8, type TerrainAnalysis } from '@/types/terrain';
+import { compassReading, MOUNTAINS_24 } from '@/lib/luopan';
 import ReportPrint from './ReportPrint';
 
 type Coord = { lng: number; lat: number };
@@ -44,6 +45,16 @@ export default function TerrainPanel({
       reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [report, reportError]);
+
+  // 파구(수구) 수정 → 패철·포태 재계산 (코드가 결정론적으로 계산). 기존 리포트는 무효화.
+  const handlePaguChange = (val: string) => {
+    if (!data) return;
+    const paguDeg = val === 'auto' ? data.aspectDeg : Number(val);
+    const source = val === 'auto' ? 'estimated' : 'manual';
+    setData({ ...data, compass: compassReading(data.aspectDeg, paguDeg, source) });
+    setReport(null);
+    setReportError(null);
+  };
 
   const handleGenerateReport = async () => {
     if (!data) return;
@@ -206,6 +217,65 @@ export default function TerrainPanel({
                 {l}
               </span>
             ))}
+          </div>
+
+          {/* 패철 24방위 · 12포태(88향법) */}
+          <div className="rounded-md border border-gray-200 bg-gray-50/60 px-3 py-2.5">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-700">패철 좌향 · 포태</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  data.compass.hyangFortune === '길'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : data.compass.hyangFortune === '평'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-rose-100 text-rose-700'
+                }`}
+              >
+                향 {data.compass.hyangPotae} · {data.compass.hyangFortune}
+              </span>
+            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px]">
+              <dt className="text-gray-400">좌향</dt>
+              <dd className="font-medium text-gray-800">
+                {data.compass.jwaHyangLabel}{' '}
+                <span className="font-mono text-gray-400">({data.compass.jwaHyangHanja})</span>
+              </dd>
+              <dt className="text-gray-400">사국</dt>
+              <dd className="text-gray-800">
+                {data.compass.saguk} ({data.compass.sagukHanja}) · 묘고 {data.compass.myo}
+              </dd>
+              <dt className="text-gray-400">포태</dt>
+              <dd className="text-gray-800">
+                향 {data.compass.hyangPotae} / 파구 {data.compass.paguPotae}
+              </dd>
+            </dl>
+
+            {/* 파구(수구) 방위 — 지형 추정 / 현장 실측 수정 */}
+            <div className="mt-2 flex items-center gap-1.5">
+              <label className="whitespace-nowrap text-[11px] text-gray-400">파구</label>
+              <select
+                value={
+                  data.compass.paguSource === 'estimated'
+                    ? 'auto'
+                    : String(data.compass.pagu.centerDeg)
+                }
+                onChange={(e) => handlePaguChange(e.target.value)}
+                className="min-w-0 flex-1 rounded border border-gray-300 bg-white px-1.5 py-1 text-[11px] text-gray-700 outline-none focus:border-blue-500"
+              >
+                <option value="auto">지형 추정 ({data.compass.pagu.kor} 방, 자동)</option>
+                {MOUNTAINS_24.map((m) => (
+                  <option key={m.index} value={m.deg}>
+                    {m.label} {m.deg}°
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="mt-1 text-[10px] leading-relaxed text-gray-400">
+              {data.compass.paguSource === 'estimated'
+                ? '지형 내리막으로 추정한 파구입니다. 현장 패철 실측값으로 수정하면 사국·포태가 재계산됩니다.'
+                : '현장 실측 파구 기준으로 재계산된 값입니다.'}
+            </p>
           </div>
 
           {/* 풍수 리포트 생성 (Claude) */}

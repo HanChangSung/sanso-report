@@ -102,6 +102,35 @@ export default function ReportPrint({ analysis: a, coord, report, siteName, cust
         </tbody>
       </table>
 
+      {/* 패철 좌향 · 12포태 */}
+      <p className="mb-1 text-sm font-semibold">패철 좌향 · 12포태(88향법)</p>
+      <table className="mb-1 w-full border-collapse">
+        <tbody>
+          <tr>
+            <th className={head}>좌향(24산)</th>
+            <td className={cell}>
+              {a.compass.jwaHyangLabel} ({a.compass.jwaHyangHanja})
+            </td>
+            <th className={head}>사국</th>
+            <td className={cell}>
+              {a.compass.saguk} ({a.compass.sagukHanja}) · 묘고 {a.compass.myo}
+            </td>
+          </tr>
+          <tr>
+            <th className={head}>파구(수구)</th>
+            <td className={cell}>
+              {a.compass.pagu.kor}({a.compass.pagu.hanja}) {a.compass.paguDeg}° (
+              {a.compass.paguSource === 'estimated' ? '지형 추정' : '현장 실측'})
+            </td>
+            <th className={head}>12포태</th>
+            <td className={cell}>
+              향 {a.compass.hyangPotae} / 파구 {a.compass.paguPotae} ({a.compass.hyangFortune})
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p className="mb-5 text-[11px] text-gray-500">※ {a.compass.note}</p>
+
       {/* 풍수 해석 */}
       <h2 className="mb-2 text-base font-bold">3. 풍수 해석</h2>
       {report ? (

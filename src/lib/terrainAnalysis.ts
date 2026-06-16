@@ -4,6 +4,7 @@ import {
   type TerrainSamples,
 } from '@/types/terrain';
 import { DIRECTIONS_8, KOR_DIR, bearingTo8 } from './geo';
+import { compassReading } from './luopan';
 
 /** 각 방위의 반대 방위 */
 const OPPOSITE: Record<Direction8, Direction8> = {
@@ -114,6 +115,8 @@ export function analyzeTerrain(samples: TerrainSamples): TerrainAnalysis {
     jangpungScore,
     relief,
     orientationLabel: `배산 ${KOR_DIR[back8]} · 향 ${KOR_DIR[aspect8]}`,
+    // 파구는 기본적으로 내리막(향) 방향으로 추정. 현장 실측 시 사용자가 수정.
+    compass: compassReading(aspectDeg, aspectDeg, 'estimated'),
     labels,
     samples,
   };
