@@ -29,6 +29,20 @@ export default function Dashboard() {
     loadSites();
   }, [loadSites]);
 
+  // 외부(산소ON 등)에서 URL 파라미터로 진입 시 그 좌표를 자동 선택 + 지도 이동
+  //   예) /?lat=36.2427&lng=128.573&label=홍길동&src=sansoon
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const lat = parseFloat(p.get('lat') ?? '');
+    const lng = parseFloat(p.get('lng') ?? '');
+    const label = p.get('label');
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      setPending({ lng, lat });
+      setFlyTo({ lng, lat });
+      if (label) setName(label);
+    }
+  }, []);
+
   // 지도 클릭 → 임시 좌표 선택 (새 핀이므로 선택 해제)
   const handlePick = useCallback((lng: number, lat: number) => {
     setPending({ lng, lat });
