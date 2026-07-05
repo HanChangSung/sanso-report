@@ -88,7 +88,8 @@ export async function generateFengshuiReport(
     max_tokens: 2048,
     thinking: { type: 'disabled' },
     output_config: { effort: 'low' },
-    system: SYSTEM_PROMPT,
+    // 프롬프트 캐싱: 고정 시스템 프롬프트를 캐시(ephemeral)하여 반복 호출 시 입력 토큰 비용 대폭 절감
+    system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [
       {
         role: 'user',

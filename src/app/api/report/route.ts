@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { generateFengshuiReport } from '@/lib/fengshuiReport';
+import { reportCacheKey, getCachedReport, setCachedReport } from '@/lib/reportCache';
 import { type TerrainAnalysis } from '@/types/terrain';
+
+const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
 
 /**
  * POST /api/report — 지형 분석 결과(TerrainAnalysis)로 풍수 해석 리포트 생성.
@@ -35,13 +38,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const site = {
+    name,
+    customer,
+    measurementNote: typeof measurementNote === 'string' ? measurementNote : undefined,
+  };
+
+  // 좌표(리포트) 캐싱: 동일 입력이면 저장된 리포트 재사용 → Claude 재호출 없음
+  const cacheKey = reportCacheKey(MODEL, { analysis, ...site });
+  const cached = await getCachedReport(cacheKey);
+  if (cached) {
+    return NextResponse.json({ report: cached, cached: true });
+  }
+
   try {
-    const report = await generateFengshuiReport(analysis, {
-      name,
-      customer,
-      measurementNote: typeof measurementNote === 'string' ? measurementNote : undefined,
-    });
-    return NextResponse.json({ report });
+    const report = await generateFengshuiReport(analysis, site);
+    await setCachedReport(cacheKey, report);
+    return NextResponse.json({ report, cached: false });
   } catch (e) {
     const err = e as { status?: number; message?: string };
     console.error('[report] 생성 실패:', err.message);
