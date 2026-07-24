@@ -52,10 +52,12 @@ export default function Dashboard() {
   }, []);
 
   // 지도 클릭 → 임시 좌표 선택 (새 핀이므로 선택 해제)
+  // 신청자(유족) 모드에서는 넘어온 묘소 좌표에 고정 — 다른 묘 분석/리포트 생성 차단 (비용·오남용 방지)
   const handlePick = useCallback((lng: number, lat: number) => {
+    if (applicantMode) return;
     setPending({ lng, lat });
     setSelectedId(null);
-  }, []);
+  }, [applicantMode]);
 
   // 주소검색/좌표입력/사진 → 임시 좌표 선택 + 지도 이동
   const handleLocate = useCallback((lng: number, lat: number) => {
@@ -256,6 +258,11 @@ export default function Dashboard() {
 
       {/* 지도 (모바일: 상단 고정 높이, 데스크톱: 우측 전체) */}
       <main className="relative h-[45dvh] shrink-0 md:h-auto md:flex-1">
+        {applicantMode && (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-[500] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white shadow">
+            이 묘소 위치로 고정된 풍수 리포트입니다
+          </div>
+        )}
         <VworldMap
           sites={applicantMode ? [] : sites}
           pending={pending}
