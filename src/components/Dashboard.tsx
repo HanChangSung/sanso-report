@@ -11,6 +11,14 @@ type Coord = { lng: number; lat: number };
 
 export default function Dashboard() {
   const [sites, setSites] = useState<Site[]>([]);
+  // 신청자(유족) 모드 — 산소ON 추모단 딥링크(?src=sansoon 또는 ?owner=)로 진입한 경우.
+  // 이때는 상담용 저장 목록(대표님 CRM: 고객명·메모)을 숨기고,
+  // 넘어온 좌표의 풍수 리포트만 보여준다. base URL(관리자)은 기존 그대로 전체 작업공간.
+  const [applicantMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const p = new URLSearchParams(window.location.search);
+    return p.get('src') === 'sansoon' || !!p.get('owner');
+  });
   const [pending, setPending] = useState<Coord | null>(null);
   const [flyTo, setFlyTo] = useState<Coord | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -106,17 +114,22 @@ export default function Dashboard() {
         <header className="flex items-start justify-between gap-2 border-b border-gray-200 px-5 py-4">
           <div>
             <h1 className="text-lg font-bold text-gray-900">산소 리포트</h1>
-            <p className="text-xs text-gray-500">디지털 묘지 명당 분석 · 상담 대시보드</p>
+            <p className="text-xs text-gray-500">
+              {applicantMode ? '묘소 명당 분석 리포트' : '디지털 묘지 명당 분석 · 상담 대시보드'}
+            </p>
           </div>
-          <Link
-            href="/compass"
-            className="shrink-0 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-          >
-            현장 패철 (AR)
-          </Link>
+          {!applicantMode && (
+            <Link
+              href="/compass"
+              className="shrink-0 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+            >
+              현장 패철 (AR)
+            </Link>
+          )}
         </header>
 
-        {/* 좌표 저장 폼 */}
+        {/* 좌표 저장 폼 — 관리자 전용 (신청자 모드에서는 숨김) */}
+        {!applicantMode && (
         <section className="border-b border-gray-200 px-5 py-4">
           <h2 className="mb-2 text-sm font-semibold text-gray-700">묘역 좌표 저장</h2>
 
@@ -164,6 +177,7 @@ export default function Dashboard() {
             </button>
           </div>
         </section>
+        )}
 
         {/* 지형 분석 (클릭 좌표 기준, 측정값 있으면 실측 반영) */}
         <TerrainPanel
@@ -173,7 +187,8 @@ export default function Dashboard() {
           measurement={selectedSite?.measurement}
         />
 
-        {/* 저장된 묘역 목록 */}
+        {/* 저장된 묘역 목록 — 관리자 전용 (신청자 모드에서는 숨김: 다른 고객 좌표 노출 방지) */}
+        {!applicantMode && (
         <section className="flex flex-col">
           <h2 className="px-5 pt-4 pb-2 text-sm font-semibold text-gray-700">
             저장된 묘역 <span className="text-gray-400">({sites.length})</span>
@@ -236,12 +251,13 @@ export default function Dashboard() {
             ))}
           </ul>
         </section>
+        )}
       </aside>
 
       {/* 지도 (모바일: 상단 고정 높이, 데스크톱: 우측 전체) */}
       <main className="relative h-[45dvh] shrink-0 md:h-auto md:flex-1">
         <VworldMap
-          sites={sites}
+          sites={applicantMode ? [] : sites}
           pending={pending}
           flyTo={flyTo}
           onPick={handlePick}
